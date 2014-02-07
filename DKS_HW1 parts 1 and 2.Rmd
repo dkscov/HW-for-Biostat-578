@@ -1,0 +1,49 @@
+David Scoville - HW 1
+========================================================
+
+Step 1: Connect to the GEO database
+
+```{r}
+library(GEOmetadb)
+geo_con<-dbConnect(SQLite(),'GEOmetadb.sqlite')
+```
+
+Step 2: Check what tables are in GEO
+
+```{r}
+dbListTables(geo_con)
+```
+
+```{r}
+library(GEOquery)
+
+dbGetQuery(geo_con,"SELECT gse.title, gse.gse, gpl.gpl, gpl.manufacturer,gpl.description, gse.contact FROM (gse JOIN gse_gpl ON gse.gse = gse_gpl.gse) j JOIN gpl ON j.gpl= gpl.gpl WHERE gse.title like'%HCV%' AND gse.contact like'%YALE%' AND gpl.manufacturer like'%Illumina%'")
+```
+
+Using data.table
+
+Step 1: make data tables
+```{r}
+library(data.table)
+gse_gpl.dt<-as.data.table(dbGetQuery(geo_con, "SELECT * FROM gse_gpl"))
+gse.dt<-as.data.table(dbGetQuery(geo_con, "SELECT * FROM gse"))
+gpl.dt<-as.data.table(dbGetQuery(geo_con, "SELECT * FROM gpl"))
+```
+Step 2: Setting keys and merging the tables
+
+```{r}
+setkey(gse.dt, gse)
+setkey(gse_gpl.dt, gse)
+setkey(gpl.dt,gpl)
+merge1<-(merge(gse.dt,gse_gpl.dt))
+setkey(merge1,gpl)
+merge2<-merge(merge1,gpl.dt)
+
+```
+Step 3: Querying the data.table for HCV data from Investigator at Yale who used Illumina
+```{r}
+merge2[title.x %like% "HCV" & contact.x %like% "Yale"& manufacturer %like% "Illumina",list(title.x,gse,gpl,manufacturer,description)]
+
+```
+
+
